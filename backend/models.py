@@ -19,7 +19,8 @@ class User(Base):
     # Relationships
     bank_accounts = relationship("BankAccount", back_populates="owner")
     incomes = relationship("Income", back_populates="owner")
-    budgets = relationship("Budget", back_populates="owner") # New relationship
+    budgets = relationship("Budget", back_populates="owner")
+    expenses = relationship("Expense", back_populates="owner") # New relationship
 
 class BankAccount(Base):
     __tablename__ = "bank_accounts"
@@ -34,6 +35,7 @@ class BankAccount(Base):
     # Relationships
     owner = relationship("User", back_populates="bank_accounts")
     incomes = relationship("Income", back_populates="bank_account")
+    expenses = relationship("Expense", back_populates="bank_account") # New relationship
 
 class Income(Base):
     __tablename__ = "incomes"
@@ -60,11 +62,31 @@ class Budget(Base):
     title = Column(String, nullable=False)
     category = Column(String, nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
-    recurrence = Column(String, default="monthly") # e.g., "monthly", "yearly", "none"
+    recurrence = Column(String, default="monthly")
     created_at = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
     
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Relationship
     owner = relationship("User", back_populates="budgets")
+
+class Expense(Base):
+    __tablename__ = "expenses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
+    currency = Column(String(3), nullable=False)
+    transaction_date = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
+    payment_method = Column(String, nullable=False) # "cash" or "upi"
+    recipient_info = Column(String, nullable=True) # Payee name or UPI ID
+    notes = Column(String, nullable=True)
+    
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    bank_account_id = Column(Integer, ForeignKey("bank_accounts.id"), nullable=True) # Optional link
+
+    # Relationships
+    owner = relationship("User", back_populates="expenses")
+    bank_account = relationship("BankAccount", back_populates="expenses")
 

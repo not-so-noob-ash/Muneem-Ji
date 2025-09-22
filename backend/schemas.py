@@ -3,6 +3,27 @@ from typing import Optional
 from decimal import Decimal
 import datetime
 
+# --- Expense Schemas ---
+class ExpenseBase(BaseModel):
+    description: str
+    category: str
+    amount: Decimal
+    currency: str
+    transaction_date: datetime.datetime
+    payment_method: str
+    bank_account_id: Optional[int] = None
+    recipient_info: Optional[str] = None
+    notes: Optional[str] = None
+
+class ExpenseCreate(ExpenseBase):
+    pass
+
+class Expense(ExpenseBase):
+    id: int
+    owner_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
 # --- Dashboard Schemas ---
 class DashboardSummary(BaseModel):
     net_worth: Decimal
