@@ -3,6 +3,13 @@ from typing import Optional
 from decimal import Decimal
 import datetime
 
+# --- Dashboard Schemas ---
+class DashboardSummary(BaseModel):
+    net_worth: Decimal
+    total_income: Decimal
+    total_budgeted: Decimal
+    currency: str
+
 # --- Budget Schemas ---
 class BudgetBase(BaseModel):
     title: str
