@@ -1,22 +1,68 @@
-from pydantic import BaseModel, EmailStr
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict, EmailStr
+from typing import Optional
+from decimal import Decimal
+import datetime
 
-# --- User Schemas (already exist) ---
-class UserCreate(BaseModel):
-    full_name: str
+# --- BankAccount Schemas ---
+class BankAccountBase(BaseModel):
+    bank_name: str
+    account_type: str
+    balance: Decimal
+    currency: str
+
+class BankAccountCreate(BankAccountBase):
+    pass
+
+class BankAccount(BankAccountBase):
+    id: int
+    owner_id: int
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# --- Income Schemas ---
+class IncomeBase(BaseModel):
+    source: str
+    amount: Decimal
+    currency: str
+    income_date: datetime.date
+    recurrence: str
+    bank_account_id: int
+
+class IncomeCreate(IncomeBase):
+    pass
+
+# This schema will be used for the API response
+# It includes the full bank account details nested inside it
+class Income(IncomeBase):
+    id: int
+    owner_id: int
+    bank_account: BankAccount # Nested schema for detailed response
+
+    model_config = ConfigDict(from_attributes=True)
+
+# --- User Schemas ---
+class UserBase(BaseModel):
     email: EmailStr
+
+class UserCreate(UserBase):
     password: str
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    upi_id: Optional[str] = None
+    preferred_currency: Optional[str] = None
 
 class User(BaseModel):
     id: int
-    full_name: str
     email: EmailStr
-    created_at: datetime
+    full_name: Optional[str] = None
+    upi_id: Optional[str] = None
+    preferred_currency: Optional[str] = None
+    created_at: datetime.datetime
+    
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
-
-# --- NEW: Token Schema ---
+# --- Token Schema ---
 class Token(BaseModel):
     access_token: str
     token_type: str

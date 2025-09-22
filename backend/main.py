@@ -1,20 +1,26 @@
 from fastapi import FastAPI
 import models
 from database import engine
-from routers import user # Import the new user router
+from routers import user, bank_account, income
 
-# This line creates the database tables
+# Create all database tables
 models.Base.metadata.create_all(bind=engine)
 
-# Create an instance of the FastAPI class
-app = FastAPI(title="Muneem Ji - Expense Tracker API")
+app = FastAPI(
+    title="Muneem Ji - Expense Tracker API",
+    description="API for managing personal and group expenses.",
+    version="0.1.0",
+)
 
-# Include the user router in our main app
+# Include the routers
 app.include_router(user.router)
-print("All registered routes:", [route.path for route in app.routes])
+app.include_router(bank_account.router)
+app.include_router(income.router)
 
 @app.get("/")
 def read_root():
-    """A simple root endpoint to confirm the API is running."""
+    """
+    A simple root endpoint to confirm the API is running.
+    """
     return {"status": "ok", "message": "Welcome to the Muneem Ji API!"}
 
