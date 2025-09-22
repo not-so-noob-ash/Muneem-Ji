@@ -10,7 +10,6 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     
-    # These fields are nullable=True to allow for progressive onboarding
     full_name = Column(String, nullable=True)
     upi_id = Column(String, unique=True, index=True, nullable=True)
     preferred_currency = Column(String(3), nullable=True)
@@ -19,7 +18,8 @@ class User(Base):
 
     # Relationships
     bank_accounts = relationship("BankAccount", back_populates="owner")
-    incomes = relationship("Income", back_populates="owner") # New relationship
+    incomes = relationship("Income", back_populates="owner")
+    budgets = relationship("Budget", back_populates="owner") # New relationship
 
 class BankAccount(Base):
     __tablename__ = "bank_accounts"
@@ -33,7 +33,7 @@ class BankAccount(Base):
 
     # Relationships
     owner = relationship("User", back_populates="bank_accounts")
-    incomes = relationship("Income", back_populates="bank_account") # New relationship
+    incomes = relationship("Income", back_populates="bank_account")
 
 class Income(Base):
     __tablename__ = "incomes"
@@ -43,14 +43,28 @@ class Income(Base):
     amount = Column(Numeric(10, 2), nullable=False)
     currency = Column(String(3), nullable=False)
     income_date = Column(Date, nullable=False)
-    recurrence = Column(String, default="none") # e.g., "none", "weekly", "monthly"
+    recurrence = Column(String, default="none")
     created_at = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
 
-    # Foreign Keys
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     bank_account_id = Column(Integer, ForeignKey("bank_accounts.id"), nullable=False)
 
     # Relationships
     owner = relationship("User", back_populates="incomes")
     bank_account = relationship("BankAccount", back_populates="incomes")
+
+class Budget(Base):
+    __tablename__ = "budgets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
+    recurrence = Column(String, default="monthly") # e.g., "monthly", "yearly", "none"
+    created_at = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
+    
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Relationship
+    owner = relationship("User", back_populates="budgets")
 

@@ -3,6 +3,22 @@ from typing import Optional
 from decimal import Decimal
 import datetime
 
+# --- Budget Schemas ---
+class BudgetBase(BaseModel):
+    title: str
+    category: str
+    amount: Decimal
+    recurrence: str
+
+class BudgetCreate(BudgetBase):
+    pass
+
+class Budget(BudgetBase):
+    id: int
+    owner_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
 # --- BankAccount Schemas ---
 class BankAccountBase(BaseModel):
     bank_name: str
@@ -31,12 +47,10 @@ class IncomeBase(BaseModel):
 class IncomeCreate(IncomeBase):
     pass
 
-# This schema will be used for the API response
-# It includes the full bank account details nested inside it
 class Income(IncomeBase):
     id: int
     owner_id: int
-    bank_account: BankAccount # Nested schema for detailed response
+    bank_account: BankAccount
 
     model_config = ConfigDict(from_attributes=True)
 
