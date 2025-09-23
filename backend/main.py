@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import models
 from database import engine
-from routers import user, bank_account, income, budget, dashboard, expense # Import the new expense router
+from routers import user, bank_account, income, budget, dashboard, expense, friend # Import the new friend router
 
 # Create all database tables
 models.Base.metadata.create_all(bind=engine)
@@ -18,7 +18,8 @@ app.include_router(bank_account.router)
 app.include_router(income.router)
 app.include_router(budget.router)
 app.include_router(dashboard.router)
-app.include_router(expense.router) # Add the new expense router
+app.include_router(expense.router)
+app.include_router(friend.router) # Add the new friend router
 
 @app.get("/")
 def read_root():

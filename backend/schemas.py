@@ -1,7 +1,28 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
-from typing import Optional
+from typing import Optional, List
 from decimal import Decimal
 import datetime
+
+# --- Friend Schemas ---
+# A slimmed-down User schema for displaying friend info
+class FriendUser(BaseModel):
+    id: int
+    email: EmailStr
+    full_name: Optional[str] = None
+    upi_id: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class FriendRequestCreate(BaseModel):
+    recipient_email: EmailStr
+
+class Friendship(BaseModel):
+    id: int
+    requester: FriendUser
+    recipient: FriendUser
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Expense Schemas ---
 class ExpenseBase(BaseModel):
