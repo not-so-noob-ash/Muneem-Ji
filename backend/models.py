@@ -21,12 +21,11 @@ class User(Base):
     incomes = relationship("Income", back_populates="owner")
     budgets = relationship("Budget", back_populates="owner")
     expenses = relationship("Expense", back_populates="owner")
-    
-    # New Friendship Relationships
-    # friendships where this user is the initiator
     sent_friend_requests = relationship("Friendship", foreign_keys="[Friendship.user_one_id]", back_populates="requester")
-    # friendships where this user is the recipient
     received_friend_requests = relationship("Friendship", foreign_keys="[Friendship.user_two_id]", back_populates="recipient")
+    
+    # New Group Relationship
+    group_memberships = relationship("GroupMember", back_populates="user")
 
 class Friendship(Base):
     __tablename__ = "friendships"
@@ -36,31 +35,52 @@ class Friendship(Base):
     user_two_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     status = Column(String, nullable=False, default="pending") # pending, accepted
 
-    # Relationships
     requester = relationship("User", foreign_keys=[user_one_id], back_populates="sent_friend_requests")
     recipient = relationship("User", foreign_keys=[user_two_id], back_populates="received_friend_requests")
     
-    # Ensure a friendship pair is unique
     __table_args__ = (UniqueConstraint('user_one_id', 'user_two_id', name='_user_friendship_uc'),)
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Relationships
+    creator = relationship("User")
+    members = relationship("GroupMember", back_populates="group")
+
+class GroupMember(Base):
+    __tablename__ = "group_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role = Column(String, nullable=False, default="member") # admin, member
+
+    # Relationships
+    group = relationship("Group", back_populates="members")
+    user = relationship("User", back_populates="group_memberships")
+    
+    __table_args__ = (UniqueConstraint('group_id', 'user_id', name='_group_user_uc'),)
 
 
 class BankAccount(Base):
     __tablename__ = "bank_accounts"
-
     id = Column(Integer, primary_key=True, index=True)
     bank_name = Column(String, nullable=False)
     account_type = Column(String, nullable=False)
     balance = Column(Numeric(10, 2), nullable=False)
     currency = Column(String(3), nullable=False)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-
     owner = relationship("User", back_populates="bank_accounts")
     incomes = relationship("Income", back_populates="bank_account")
     expenses = relationship("Expense", back_populates="bank_account")
 
 class Income(Base):
     __tablename__ = "incomes"
-
     id = Column(Integer, primary_key=True, index=True)
     source = Column(String, nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
@@ -68,30 +88,24 @@ class Income(Base):
     income_date = Column(Date, nullable=False)
     recurrence = Column(String, default="none")
     created_at = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
-
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     bank_account_id = Column(Integer, ForeignKey("bank_accounts.id"), nullable=False)
-
     owner = relationship("User", back_populates="incomes")
     bank_account = relationship("BankAccount", back_populates="incomes")
 
 class Budget(Base):
     __tablename__ = "budgets"
-
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     category = Column(String, nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     recurrence = Column(String, default="monthly")
     created_at = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
-    
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-
     owner = relationship("User", back_populates="budgets")
 
 class Expense(Base):
     __tablename__ = "expenses"
-
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String, nullable=False)
     category = Column(String, nullable=False)
@@ -101,10 +115,8 @@ class Expense(Base):
     payment_method = Column(String, nullable=False)
     recipient_info = Column(String, nullable=True)
     notes = Column(String, nullable=True)
-    
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     bank_account_id = Column(Integer, ForeignKey("bank_accounts.id"), nullable=True)
-
     owner = relationship("User", back_populates="expenses")
     bank_account = relationship("BankAccount", back_populates="expenses")
 

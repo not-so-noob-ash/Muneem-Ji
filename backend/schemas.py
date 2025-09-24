@@ -3,8 +3,7 @@ from typing import Optional, List
 from decimal import Decimal
 import datetime
 
-# --- Friend Schemas ---
-# A slimmed-down User schema for displaying friend info
+# --- User Schemas (re-ordered for dependency) ---
 class FriendUser(BaseModel):
     id: int
     email: EmailStr
@@ -13,6 +12,30 @@ class FriendUser(BaseModel):
     
     model_config = ConfigDict(from_attributes=True)
 
+# --- Group Schemas ---
+class GroupMember(BaseModel):
+    user: FriendUser
+    role: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class GroupBase(BaseModel):
+    name: str
+
+class GroupCreate(GroupBase):
+    pass
+
+class Group(GroupBase):
+    id: int
+    created_by_id: int
+    members: List[GroupMember] = []
+
+    model_config = ConfigDict(from_attributes=True)
+    
+class GroupMemberAdd(BaseModel):
+    user_email: EmailStr
+
+# --- Friend Schemas ---
 class FriendRequestCreate(BaseModel):
     recipient_email: EmailStr
 
@@ -85,6 +108,12 @@ class BankAccount(BankAccountBase):
     model_config = ConfigDict(from_attributes=True)
 
 # --- Income Schemas ---
+class BankAccountForIncome(BaseModel): # A slimmed down model for nesting
+    id: int
+    bank_name: str
+    account_type: str
+    model_config = ConfigDict(from_attributes=True)
+
 class IncomeBase(BaseModel):
     source: str
     amount: Decimal
@@ -99,11 +128,11 @@ class IncomeCreate(IncomeBase):
 class Income(IncomeBase):
     id: int
     owner_id: int
-    bank_account: BankAccount
+    bank_account: BankAccountForIncome
 
     model_config = ConfigDict(from_attributes=True)
 
-# --- User Schemas ---
+# --- User Schemas (continued) ---
 class UserBase(BaseModel):
     email: EmailStr
 
