@@ -9,14 +9,50 @@ class FriendUser(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     upi_id: Optional[str] = None
-    
     model_config = ConfigDict(from_attributes=True)
+
+# --- Group Expense Schemas ---
+class ParticipantInput(BaseModel):
+    user_id: int
+    paid_amount: Decimal = Decimal('0.0')
+    share_amount: Decimal = Decimal('0.0')
+
+class GroupExpenseCreate(BaseModel):
+    description: str
+    total_amount: Decimal
+    participants: List[ParticipantInput]
+
+class TransactionDebt(BaseModel):
+    lender: FriendUser
+    borrower: FriendUser
+    amount: Decimal
+    model_config = ConfigDict(from_attributes=True)
+
+class ExpenseParticipant(BaseModel):
+    user: FriendUser
+    paid_amount: Decimal
+    share_amount: Decimal
+    model_config = ConfigDict(from_attributes=True)
+    
+class GroupExpense(BaseModel):
+    id: int
+    description: str
+    total_amount: Decimal
+    created_at: datetime.datetime
+    creator: FriendUser
+    participants: List[ExpenseParticipant]
+    debts: List[TransactionDebt]
+    model_config = ConfigDict(from_attributes=True)
+
+class GroupBalance(BaseModel):
+    lender: FriendUser
+    borrower: FriendUser
+    amount: Decimal
 
 # --- Group Schemas ---
 class GroupMember(BaseModel):
     user: FriendUser
     role: str
-
     model_config = ConfigDict(from_attributes=True)
 
 class GroupBase(BaseModel):
@@ -29,7 +65,6 @@ class Group(GroupBase):
     id: int
     created_by_id: int
     members: List[GroupMember] = []
-
     model_config = ConfigDict(from_attributes=True)
     
 class GroupMemberAdd(BaseModel):
@@ -44,10 +79,9 @@ class Friendship(BaseModel):
     requester: FriendUser
     recipient: FriendUser
     status: str
-
     model_config = ConfigDict(from_attributes=True)
 
-# --- Expense Schemas ---
+# --- Personal Expense Schemas ---
 class ExpenseBase(BaseModel):
     description: str
     category: str
@@ -65,7 +99,6 @@ class ExpenseCreate(ExpenseBase):
 class Expense(ExpenseBase):
     id: int
     owner_id: int
-
     model_config = ConfigDict(from_attributes=True)
 
 # --- Dashboard Schemas ---
@@ -88,7 +121,6 @@ class BudgetCreate(BudgetBase):
 class Budget(BudgetBase):
     id: int
     owner_id: int
-
     model_config = ConfigDict(from_attributes=True)
 
 # --- BankAccount Schemas ---
@@ -104,11 +136,10 @@ class BankAccountCreate(BankAccountBase):
 class BankAccount(BankAccountBase):
     id: int
     owner_id: int
-    
     model_config = ConfigDict(from_attributes=True)
 
 # --- Income Schemas ---
-class BankAccountForIncome(BaseModel): # A slimmed down model for nesting
+class BankAccountForIncome(BaseModel):
     id: int
     bank_name: str
     account_type: str
@@ -129,7 +160,6 @@ class Income(IncomeBase):
     id: int
     owner_id: int
     bank_account: BankAccountForIncome
-
     model_config = ConfigDict(from_attributes=True)
 
 # --- User Schemas (continued) ---
@@ -151,7 +181,6 @@ class User(BaseModel):
     upi_id: Optional[str] = None
     preferred_currency: Optional[str] = None
     created_at: datetime.datetime
-    
     model_config = ConfigDict(from_attributes=True)
 
 # --- Token Schema ---
