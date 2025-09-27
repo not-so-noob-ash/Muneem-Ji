@@ -9,6 +9,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
+        leading: Image.asset('assets/logo.png', height: 50),
         title: const Text('Dashboard'),
         actions: [
           IconButton(
