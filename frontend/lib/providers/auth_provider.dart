@@ -1,64 +1,118 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_service.dart';
 import '../services/token_storage_service.dart';
+import '../models/user_model.dart';
 
-// Enum to represent the authentication state
+// Enum to represent the different states of authentication
 enum AuthState {
-  checking,
-  loggedIn,
-  loggedOut,
+  unauthenticated,
+  authenticating,
+  profileIncomplete,
+  authenticated,
 }
 
-// The StateNotifier that will hold our authentication state
-class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(this._apiService, this._tokenStorage) : super(AuthState.checking) {
-    _checkToken();
-  }
-
+// The state object that our provider will manage
+class AuthStateNotifier extends StateNotifier<AuthState> {
   final ApiService _apiService;
   final TokenStorageService _tokenStorage;
+  User? currentUser;
+  String? _token;
 
-  // Check if a token exists on startup
-  Future<void> _checkToken() async {
-    final token = await _tokenStorage.getToken();
-    if (token != null && token.isNotEmpty) {
-      state = AuthState.loggedIn;
+  AuthStateNotifier(this._apiService, this._tokenStorage) : super(AuthState.unauthenticated) {
+    _init();
+  }
+
+  // Check for a saved token on app startup
+  Future<void> _init() async {
+    _token = await _tokenStorage.getToken();
+    if (_token != null) {
+      await _verifyTokenAndFetchUser();
     } else {
-      state = AuthState.loggedOut;
+      state = AuthState.unauthenticated;
     }
   }
 
-  Future<void> register(String email, String password) async {
-    try {
-      await _apiService.register(email, password);
-      // After successful registration, log the user in
-      await login(email, password);
-    } catch (e) {
-      // Re-throw the exception to be caught in the UI
-      rethrow;
+  Future<void> _verifyTokenAndFetchUser() async {
+    state = AuthState.authenticating;
+    final response = await _apiService.getMe(_token!);
+    if (response['success']) {
+      currentUser = User.fromJson(response['data']);
+      if (currentUser!.isProfileComplete) {
+        state = AuthState.authenticated;
+      } else {
+        state = AuthState.profileIncomplete;
+      }
+    } else {
+      await logout(); // Token is invalid or expired
     }
   }
 
-  Future<void> login(String email, String password) async {
+  Future<String?> login(String email, String password) async {
     try {
-      final token = await _apiService.login(email, password);
-      await _tokenStorage.saveToken(token);
-      state = AuthState.loggedIn;
+      final response = await _apiService.login(email, password);
+      if (response['success']) {
+        _token = response['token'];
+        await _tokenStorage.saveToken(_token!);
+        await _verifyTokenAndFetchUser();
+        return null; // Success
+      } else {
+        return response['message'];
+      }
     } catch (e) {
-      rethrow;
+      return e.toString();
+    }
+  }
+
+  Future<String?> register(String email, String password) async {
+    try {
+      final response = await _apiService.register(email, password);
+      if (response['success']) {
+        // Automatically log in the user after successful registration
+        return await login(email, password);
+      } else {
+        return response['message'];
+      }
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String?> updateProfile(String fullName, String upiId, String currency) async {
+    try {
+      final response = await _apiService.updateProfile(
+        token: _token!,
+        fullName: fullName,
+        upiId: upiId,
+        preferredCurrency: currency,
+      );
+      if (response['success']) {
+        await _verifyTokenAndFetchUser(); // Re-fetch user to confirm profile is complete
+        return null;
+      } else {
+        return response['message'];
+      }
+    } catch (e) {
+      return e.toString();
     }
   }
 
   Future<void> logout() async {
+    _token = null;
+    currentUser = null;
     await _tokenStorage.deleteToken();
-    state = AuthState.loggedOut;
+    state = AuthState.unauthenticated;
   }
 }
 
-// The Riverpod provider for our AuthNotifier
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  // We can get other providers using ref.watch
+// --- Providers ---
+
+final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
+
+final tokenStorageProvider = Provider<TokenStorageService>((ref) => TokenStorageService());
+
+final authProvider = StateNotifierProvider<AuthStateNotifier, AuthState>((ref) {
   final apiService = ref.watch(apiServiceProvider);
-  final tokenStorage = TokenStorageService();
-  return AuthNotifier(apiService, tokenStorage);
+  final tokenStorage = ref.watch(tokenStorageProvider);
+  return AuthStateNotifier(apiService, tokenStorage);
 });
+

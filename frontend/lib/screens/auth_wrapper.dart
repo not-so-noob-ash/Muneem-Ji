@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
-import 'home_screen.dart';
 import 'login_screen.dart';
+import 'home_screen.dart';
+import 'complete_profile_screen.dart';
 
 class AuthWrapper extends ConsumerWidget {
   const AuthWrapper({super.key});
@@ -12,13 +13,13 @@ class AuthWrapper extends ConsumerWidget {
     final authState = ref.watch(authProvider);
 
     switch (authState) {
-      case AuthState.loggedIn:
+      case AuthState.authenticated:
         return const HomeScreen();
-      case AuthState.loggedOut:
+      case AuthState.profileIncomplete:
+        return const CompleteProfileScreen();
+      case AuthState.unauthenticated:
         return const LoginScreen();
-      case AuthState.checking:
-      default:
-        // Show a loading spinner while we check the token
+      case AuthState.authenticating:
         return const Scaffold(
           body: Center(
             child: CircularProgressIndicator(),
@@ -27,3 +28,4 @@ class AuthWrapper extends ConsumerWidget {
     }
   }
 }
+

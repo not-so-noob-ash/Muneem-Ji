@@ -1,53 +1,98 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants.dart';
 
-// A Riverpod provider that creates a single instance of our ApiService
-// that can be accessed from anywhere in the app.
-final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
-
 class ApiService {
-  // Method for user registration
-  // It sends a POST request to the /register endpoint.
   Future<Map<String, dynamic>> register(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('$apiBaseUrl/users/register'),
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
-      body: jsonEncode(<String, String>{
-        'email': email,
-        'password': password,
-      }),
-    );
-
-    if (response.statusCode == 201) {
-      // If the server returns a 201 CREATED response,
-      // then parse the JSON and return it.
-      return jsonDecode(response.body);
-    } else {
-      // If the server did not return a 201 CREATED response,
-      // then throw an exception with the error message.
-      throw Exception('Failed to register: ${response.body}');
+    final url = Uri.parse('$apiBaseUrl/users/register');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email, 'password': password}),
+      );
+      final responseBody = json.decode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'data': responseBody};
+      } else {
+        return {'success': false, 'message': responseBody['detail'] ?? 'Registration failed'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Could not connect to the server.'};
     }
   }
 
-  // Method for user login
-  // It sends a POST request to the /token endpoint.
-  Future<String> login(String email, String password) async {
-    // NOTE: The backend's /token endpoint expects OAuth2-style form data, not JSON.
-    final response = await http.post(
-      Uri.parse('$apiBaseUrl/token'),
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {'username': email, 'password': password},
-    );
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    final url = Uri.parse('$apiBaseUrl/token');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {'username': email, 'password': password},
+      );
+      final responseBody = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'token': responseBody['access_token']};
+      } else {
+        return {'success': false, 'message': responseBody['detail'] ?? 'Login failed'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Could not connect to the server.'};
+    }
+  }
 
-    if (response.statusCode == 200) {
-      // If the server returns a 200 OK response,
-      // parse the JSON, extract the token, and return it.
-      final data = jsonDecode(response.body);
-      return data['access_token'];
-    } else {
-      throw Exception('Failed to login: ${response.body}');
+  // NEW METHOD: Get the current user's profile
+  Future<Map<String, dynamic>> getMe(String token) async {
+    final url = Uri.parse('$apiBaseUrl/users/me');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      final responseBody = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': responseBody};
+      } else {
+        return {'success': false, 'message': responseBody['detail'] ?? 'Failed to fetch profile'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Could not connect to the server.'};
+    }
+  }
+
+  // NEW METHOD: Update the user's profile
+  Future<Map<String, dynamic>> updateProfile({
+    required String token,
+    required String fullName,
+    required String upiId,
+    required String preferredCurrency,
+  }) async {
+    final url = Uri.parse('$apiBaseUrl/users/me');
+    try {
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'full_name': fullName,
+          'upi_id': upiId,
+          'preferred_currency': preferredCurrency,
+        }),
+      );
+      final responseBody = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': responseBody};
+      } else {
+        return {'success': false, 'message': responseBody['detail'] ?? 'Failed to update profile'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Could not connect to the server.'};
     }
   }
 }
+
