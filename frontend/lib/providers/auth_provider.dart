@@ -1,118 +1,119 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/user_model.dart';
 import '../services/api_service.dart';
 import '../services/token_storage_service.dart';
-import '../models/user_model.dart';
 
-// Enum to represent the different states of authentication
-enum AuthState {
-  unauthenticated,
-  authenticating,
-  profileIncomplete,
-  authenticated,
+// 1. Corrected AuthState class
+class AuthState {
+  final bool isLoading;
+  final String? errorMessage;
+  final String? token;
+  final User? user;
+
+  AuthState({
+    this.isLoading = false,
+    this.errorMessage,
+    this.token,
+    this.user,
+  });
+
+  bool get isAuthenticated => token != null;
+  bool get isProfileComplete => user?.isProfileComplete ?? false;
+
+  AuthState copyWith({
+    bool? isLoading,
+    String? errorMessage,
+    String? token,
+    User? user,
+    bool clearToken = false,
+    bool clearUser = false,
+  }) {
+    return AuthState(
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage, // Always update error message
+      token: clearToken ? null : token ?? this.token,
+      user: clearUser ? null : user ?? this.user,
+    );
+  }
 }
 
-// The state object that our provider will manage
-class AuthStateNotifier extends StateNotifier<AuthState> {
+
+class AuthNotifier extends StateNotifier<AuthState> {
   final ApiService _apiService;
   final TokenStorageService _tokenStorage;
-  User? currentUser;
-  String? _token;
 
-  AuthStateNotifier(this._apiService, this._tokenStorage) : super(AuthState.unauthenticated) {
-    _init();
+  AuthNotifier(this._apiService, this._tokenStorage) : super(AuthState()) {
+    _tryAutoLogin();
   }
 
-  // Check for a saved token on app startup
-  Future<void> _init() async {
-    _token = await _tokenStorage.getToken();
-    if (_token != null) {
-      await _verifyTokenAndFetchUser();
-    } else {
-      state = AuthState.unauthenticated;
-    }
-  }
-
-  Future<void> _verifyTokenAndFetchUser() async {
-    state = AuthState.authenticating;
-    final response = await _apiService.getMe(_token!);
-    if (response['success']) {
-      currentUser = User.fromJson(response['data']);
-      if (currentUser!.isProfileComplete) {
-        state = AuthState.authenticated;
-      } else {
-        state = AuthState.profileIncomplete;
+  Future<void> _tryAutoLogin() async {
+    final token = await _tokenStorage.getToken();
+    if (token != null) {
+      try {
+        final user = await _apiService.getMe(token);
+        state = state.copyWith(token: token, user: user);
+      } catch (e) {
+        // Token is invalid, log out
+        await logout();
       }
-    } else {
-      await logout(); // Token is invalid or expired
     }
   }
 
-  Future<String?> login(String email, String password) async {
+  Future<bool> login(String email, String password) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final response = await _apiService.login(email, password);
-      if (response['success']) {
-        _token = response['token'];
-        await _tokenStorage.saveToken(_token!);
-        await _verifyTokenAndFetchUser();
-        return null; // Success
-      } else {
-        return response['message'];
-      }
+      final token = response['access_token'];
+      await _tokenStorage.saveToken(token);
+      final user = await _apiService.getMe(token);
+      state = state.copyWith(isLoading: false, token: token, user: user);
+      return true;
     } catch (e) {
-      return e.toString();
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return false;
+    }
+  }
+  
+  Future<bool> register(String email, String password) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+     try {
+      await _apiService.register(email, password);
+      // After successful registration, log the user in
+      return await login(email, password);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return false;
     }
   }
 
-  Future<String?> register(String email, String password) async {
+  Future<bool> updateProfile({
+    required String fullName,
+    required String upiId,
+    required String preferredCurrency,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final response = await _apiService.register(email, password);
-      if (response['success']) {
-        // Automatically log in the user after successful registration
-        return await login(email, password);
-      } else {
-        return response['message'];
-      }
-    } catch (e) {
-      return e.toString();
-    }
-  }
-
-  Future<String?> updateProfile(String fullName, String upiId, String currency) async {
-    try {
-      final response = await _apiService.updateProfile(
-        token: _token!,
+      final updatedUser = await _apiService.updateProfile(
+        token: state.token!,
         fullName: fullName,
         upiId: upiId,
-        preferredCurrency: currency,
+        preferredCurrency: preferredCurrency,
       );
-      if (response['success']) {
-        await _verifyTokenAndFetchUser(); // Re-fetch user to confirm profile is complete
-        return null;
-      } else {
-        return response['message'];
-      }
+      state = state.copyWith(isLoading: false, user: updatedUser);
+      return true;
     } catch (e) {
-      return e.toString();
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return false;
     }
   }
 
   Future<void> logout() async {
-    _token = null;
-    currentUser = null;
     await _tokenStorage.deleteToken();
-    state = AuthState.unauthenticated;
+    state = state.copyWith(clearToken: true, clearUser: true);
   }
 }
 
-// --- Providers ---
-
-final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
-
-final tokenStorageProvider = Provider<TokenStorageService>((ref) => TokenStorageService());
-
-final authProvider = StateNotifierProvider<AuthStateNotifier, AuthState>((ref) {
-  final apiService = ref.watch(apiServiceProvider);
-  final tokenStorage = ref.watch(tokenStorageProvider);
-  return AuthStateNotifier(apiService, tokenStorage);
+final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  return AuthNotifier(ApiService(), TokenStorageService());
 });
 

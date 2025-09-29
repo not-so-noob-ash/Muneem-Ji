@@ -56,7 +56,7 @@ class GroupExpense(BaseModel):
     id: int
     description: str
     total_amount: Decimal
-    created_at: datetime.datetime
+    transaction_date: datetime.datetime
     creator: FriendUser
     participants: List[ExpenseParticipant]
     debts: List[TransactionDebt]
@@ -83,7 +83,7 @@ class GroupCreate(GroupBase):
 
 class Group(GroupBase):
     id: int
-    created_by_id: int
+    creator_id: int
     members: List[GroupMember] = []
     model_config = ConfigDict(from_attributes=True)
     
@@ -122,6 +122,15 @@ class Expense(ExpenseBase):
     id: int
     owner_id: int
     model_config = ConfigDict(from_attributes=True)
+
+class SpendingByCategory(BaseModel):
+    category: str
+    total_amount: Decimal
+
+class AnalyticsResponse(BaseModel):
+    start_date: datetime.date
+    end_date: datetime.date
+    spending_breakdown: List[SpendingByCategory]
 
 class DashboardSummary(BaseModel):
     net_worth: Decimal
@@ -163,20 +172,23 @@ class BankAccountForIncome(BaseModel):
     account_type: str
     model_config = ConfigDict(from_attributes=True)
 
-class IncomeBase(BaseModel):
+# --- CORRECTED Income Schemas ---
+# This schema now accurately reflects what the frontend sends.
+class IncomeCreate(BaseModel):
     source: str
     amount: Decimal
-    currency: str
-    income_date: datetime.date
     recurrence: str
     bank_account_id: int
 
-class IncomeCreate(IncomeBase):
-    pass
-
-class Income(IncomeBase):
+# This schema is for the response, which includes the auto-generated fields.
+class Income(BaseModel):
     id: int
     owner_id: int
+    source: str
+    amount: Decimal
+    currency: str
+    income_date: datetime.datetime
+    recurrence: str
     bank_account: BankAccountForIncome
     model_config = ConfigDict(from_attributes=True)
 

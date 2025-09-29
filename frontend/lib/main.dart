@@ -15,21 +15,50 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFF00C49F); // Electric Teal
+    const backgroundColor = Color(0xFF121212); // Dark Charcoal
+    const surfaceColor = Color(0xFF1E1E1E); // Slightly lighter charcoal
+    
     return MaterialApp(
       title: 'Muneem Ji',
       theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        brightness: Brightness.light,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      darkTheme: ThemeData(
         brightness: Brightness.dark,
-        primarySwatch: Colors.indigo,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+        primaryColor: primaryColor,
+        scaffoldBackgroundColor: backgroundColor,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: surfaceColor,
+          elevation: 0,
+        ),
+        cardTheme: CardThemeData( // Corrected from CardTheme
+          color: surfaceColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: surfaceColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+        colorScheme: const ColorScheme.dark(
+          primary: primaryColor,
+          secondary: primaryColor,
+          background: backgroundColor,
+          surface: surfaceColor,
+        ),
       ),
-      themeMode: ThemeMode.dark, // Enforce dark theme to match welcome screen
       debugShowCheckedModeBanner: false,
-      home: const SplashScreen(), // The app now starts here
+      home: const SplashScreen(),
     );
   }
 }
