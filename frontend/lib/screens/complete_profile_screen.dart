@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
-import 'onboarding/onboarding_wizard_screen.dart';
+import 'home_screen.dart'; // Navigate to HomeScreen
 
 class CompleteProfileScreen extends ConsumerStatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -27,15 +27,15 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
 
   Future<void> _submitProfile() async {
     if (_formKey.currentState!.validate()) {
-      // Correctly call updateProfile with named arguments
       final success = await ref.read(authProvider.notifier).updateProfile(
             fullName: _fullNameController.text,
             upiId: _upiIdController.text,
             preferredCurrency: _currencyController.text,
           );
       if (success && mounted) {
+        // Navigate to the HomeScreen
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const OnboardingWizardScreen()),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     }
@@ -44,15 +44,6 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-
-    // Listen for errors and show a SnackBar
-    ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage!)),
-        );
-      }
-    });
 
     return Scaffold(
       appBar: AppBar(
@@ -93,10 +84,19 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                     value!.isEmpty ? 'Please enter your currency' : null,
               ),
               const SizedBox(height: 32),
+              if (authState.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(
+                    authState.errorMessage!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ElevatedButton(
                 onPressed: authState.isLoading ? null : _submitProfile,
                 child: authState.isLoading
-                    ? const CircularProgressIndicator(color: Colors.black)
+                    ? const CircularProgressIndicator()
                     : const Text('Save and Continue'),
               ),
             ],

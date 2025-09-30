@@ -3,11 +3,12 @@ import 'package:http/http.dart' as http;
 import '../constants.dart';
 import '../models/user_model.dart';
 import '../models/bank_account_model.dart';
+import '../models/dashboard_summary_model.dart';
+import '../models/budget_model.dart';
 
 class ApiService {
   // --- Auth ---
   Future<Map<String, dynamic>> login(String email, String password) async {
-    // CORRECTED: The token URL should not have the /users prefix.
     final response = await http.post(
       Uri.parse('$apiBaseUrl/token'),
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -76,7 +77,7 @@ class ApiService {
     }
   }
 
-  // --- Onboarding ---
+  // --- Personal Finance ---
   Future<void> addBankAccount({
     required String token,
     required String bankName,
@@ -93,13 +94,29 @@ class ApiService {
       body: json.encode({
         'bank_name': bankName,
         'account_type': accountType,
-        'balance': balance.toString(), // Send balance as a string for precision
+        'balance': balance.toString(),
         'currency': currency,
       }),
     );
 
     if (response.statusCode != 201) {
       final errorData = response.body.isNotEmpty ? json.decode(response.body) : {'detail': 'Failed to add bank account.'};
+      throw Exception(errorData['detail'] ?? 'An unknown error occurred.');
+    }
+  }
+  
+  // --- Dashboard Data ---
+
+  Future<DashboardSummary> getDashboardSummary({required String token}) async {
+    final response = await http.get(
+      Uri.parse('$apiBaseUrl/dashboard/summary'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      return DashboardSummary.fromJson(json.decode(response.body));
+    } else {
+      final errorData = response.body.isNotEmpty ? json.decode(response.body) : {'detail': 'Failed to fetch dashboard summary.'};
       throw Exception(errorData['detail'] ?? 'An unknown error occurred.');
     }
   }
@@ -119,56 +136,17 @@ class ApiService {
     }
   }
 
-  Future<void> addIncome({
-    required String token,
-    required int bankAccountId,
-    required String source,
-    required double amount,
-    required String recurrence,
-  }) async {
-    final response = await http.post(
-      Uri.parse('$apiBaseUrl/income'),
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-        'Authorization': 'Bearer $token',
-      },
-      body: json.encode({
-        'bank_account_id': bankAccountId,
-        'source': source,
-        'amount': amount.toString(),
-        'recurrence': recurrence,
-      }),
-    );
-
-    if (response.statusCode != 201) {
-      final errorData = response.body.isNotEmpty ? json.decode(response.body) : {'detail': 'Failed to add income.'};
-      throw Exception(errorData['detail'] ?? 'An unknown error occurred.');
-    }
-  }
-
-  Future<void> addBudget({
-    required String token,
-    required String title,
-    required String category,
-    required double amount,
-    required String recurrence,
-  }) async {
-    final response = await http.post(
+  Future<List<Budget>> getBudgets({required String token}) async {
+    final response = await http.get(
       Uri.parse('$apiBaseUrl/budgets'),
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-        'Authorization': 'Bearer $token',
-      },
-      body: json.encode({
-        'title': title,
-        'category': category,
-        'amount': amount.toString(),
-        'recurrence': recurrence,
-      }),
+      headers: {'Authorization': 'Bearer $token'},
     );
 
-    if (response.statusCode != 201) {
-      final errorData = response.body.isNotEmpty ? json.decode(response.body) : {'detail': 'Failed to add budget.'};
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((item) => Budget.fromJson(item)).toList();
+    } else {
+      final errorData = response.body.isNotEmpty ? json.decode(response.body) : {'detail': 'Failed to fetch budgets.'};
       throw Exception(errorData['detail'] ?? 'An unknown error occurred.');
     }
   }
