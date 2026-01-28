@@ -2,17 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 import models, schemas, security
+from database import get_db
 
+# CORRECTED: The prefix groups routes under /expenses
+# We use empty string "" for the path to avoid trailing slash issues
 router = APIRouter(
     prefix="/expenses",
     tags=["Expenses"]
 )
 
-# Dependency to get a database session
-def get_db():
-    return next(security.get_db())
-
-@router.post("/", response_model=schemas.Expense, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=schemas.Expense, status_code=status.HTTP_201_CREATED)
 def create_expense(
     expense: schemas.ExpenseCreate,
     db: Session = Depends(get_db),
@@ -45,6 +44,7 @@ def create_expense(
                 detail=f"Bank account with id {expense.bank_account_id} not found."
             )
         
+        # Deduct balance
         bank_account.balance -= expense.amount
 
     # Logic for Cash payments
@@ -62,6 +62,7 @@ def create_expense(
                     detail=f"Bank account with id {expense.bank_account_id} not found."
                 )
             
+            # Deduct balance (withdrawal)
             bank_account.balance -= expense.amount
     else:
         raise HTTPException(
@@ -76,6 +77,7 @@ def create_expense(
     )
 
     db.add(new_expense)
+    # If we modified a bank account, add it to the session to be committed
     if bank_account:
         db.add(bank_account)
     
@@ -84,7 +86,7 @@ def create_expense(
     
     return new_expense
 
-@router.get("/", response_model=List[schemas.Expense])
+@router.get("", response_model=List[schemas.Expense])
 def read_expenses(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
@@ -92,6 +94,8 @@ def read_expenses(
     """
     Retrieve all expense records for the currently logged-in user.
     """
-    expenses = db.query(models.Expense).filter(models.Expense.owner_id == current_user.id).all()
+    expenses = db.query(models.Expense).filter(
+        models.Expense.owner_id == current_user.id
+    ).order_by(models.Expense.transaction_date.desc()).all()
+    
     return expenses
-

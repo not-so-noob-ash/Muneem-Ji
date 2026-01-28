@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/onboarding_service.dart';
 import 'auth_wrapper.dart';
 import 'welcome_screen.dart';
-import '../services/onboarding_service.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -18,20 +19,22 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkOnboardingStatus() async {
-    final onboardingService = OnboardingService();
-    final hasSeenWelcome = await onboardingService.hasSeenWelcomeScreen();
+    // Give a small delay to show the splash screen
+    await Future.delayed(const Duration(seconds: 2));
 
-    // Wait a bit to show a splash screen, then navigate
-    await Future.delayed(const Duration(milliseconds: 1500));
+    final onboardingService = ref.read(onboardingServiceProvider);
+    final hasSeenWelcome = await onboardingService.hasSeenWelcomeScreen();
 
     if (mounted) {
       if (hasSeenWelcome) {
+        // User has seen the welcome screen, go to the auth wrapper
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const AuthWrapper()),
+          MaterialPageRoute(builder: (_) => const AuthWrapper()),
         );
       } else {
+        // First time user, show the welcome screen
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
         );
       }
     }
@@ -40,27 +43,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF0F172A),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/logo.png', height: 150),
-            Text(
-              'Muneem Ji',
-              style: TextStyle(
-                fontSize: 40,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 20),
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
+            // Added the logo here
+            Image.asset('assets/logo.png', height: 120),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(),
           ],
         ),
       ),
     );
   }
 }
+

@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Make sure this URL matches your docker-compose.yml
-SQLALCHEMY_DATABASE_URL = "postgresql://myuser:mypassword@localhost:5432/muneemdb"
+# CHANGE HERE: Updated port to 5433
+SQLALCHEMY_DATABASE_URL = "postgresql://muneem_admin:secure_pass_123@127.0.0.1:5433/muneem_db"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
@@ -10,7 +10,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-# --- THIS IS THE CRUCIAL FUNCTION THAT WAS MISSING ---
 def get_db():
     """
     Dependency function to get a database session for each request.
@@ -21,4 +20,3 @@ def get_db():
         yield db
     finally:
         db.close()
-

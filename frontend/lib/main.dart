@@ -1,64 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'screens/splash_screen.dart';
+import 'screens/splash_screen.dart'; // Import the new splash screen
 
 void main() {
   runApp(
     const ProviderScope(
-      child: MyApp(),
+      child: MuneemJiApp(),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MuneemJiApp extends StatelessWidget {
+  const MuneemJiApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF00C49F); // Electric Teal
-    const backgroundColor = Color(0xFF121212); // Dark Charcoal
-    const surfaceColor = Color(0xFF1E1E1E); // Slightly lighter charcoal
-    
     return MaterialApp(
       title: 'Muneem Ji',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: primaryColor,
-        scaffoldBackgroundColor: backgroundColor,
+      theme: ThemeData.dark().copyWith(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.teal,
+          brightness: Brightness.dark,
+          primary: Colors.tealAccent[400],
+          secondary: Colors.purpleAccent[100],
+        ),
+        scaffoldBackgroundColor: const Color(0xFF121212),
         appBarTheme: const AppBarTheme(
-          backgroundColor: surfaceColor,
+          backgroundColor: Colors.transparent,
           elevation: 0,
+          centerTitle: true,
         ),
-        cardTheme: CardThemeData( // Corrected from CardTheme
-          color: surfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: surfaceColor,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
+        // CORRECTED: Changed CardTheme to CardThemeData
+        cardTheme: CardThemeData(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          color: Colors.grey[850],
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: primaryColor,
+            backgroundColor: Colors.tealAccent[400],
             foregroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
-        colorScheme: const ColorScheme.dark(
-          primary: primaryColor,
-          secondary: primaryColor,
-          background: backgroundColor,
-          surface: surfaceColor,
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          filled: true,
+          fillColor: Colors.grey[800],
         ),
+        // Add other theme properties as needed
       ),
       debugShowCheckedModeBanner: false,
-      home: const SplashScreen(),
+      home: const SplashScreen(), // The new entry point
     );
   }
 }
